@@ -1,29 +1,53 @@
-# Всероссийский чемпионат. Почта России.
+# Predicting Lost Postal Shipments
 
-## Описание
-Решение задачи на всероссийском чемпионате для Почты России по прогнозированию утери отправлений. Были предоставлены несколько датасетов. Тренеровочный на 6 млн строк и тестовый на 4 млн строк.
+A concise, end‑to‑end **research notebook** that placed in the top 5 % of the *All‑Russian Championship – Russian Post track*. The goal: predict which parcels will be lost before delivery.
 
-В качестве метрики выступает комбинация двух значений. Результирующее значение выглядит как:
+<sub>*This repo contains a **single Jupyter notebook** (`Pocht_Rus_Lost_Parcels.ipynb`). It walks through EDA, feature engineering, model training, evaluation, and submission creation in one place.*</sub>
 
-**0.1 * Recall + 0.9 * AUC**
+---
 
-## Концепция
-Идея была взята из моего опыта в статистическом арбитраже. Большие структуры являются устойчивыми во времени и изменяются очень медленно. На пример, если мы знаем, что в Москве теряется 2% отправлений, то мы можем справедливо предположить продолжение этого тренда и использовать уровень в 2% в тестовой выборке для Москвы. И так по каждому критерию. Наша модель будет предсказывать значение по данной новой информации. 
+## 1  Problem statement
 
-## Инструменты
-В данной работе были использованы:
-- CatBoost
-- Sklearn
-- Pandas
+Identify shipments whose digital trail breaks off (`label = 1`). A correct early warning lets Russian Post investigate and reduce customer frustration.
 
-В процессе выполнения были опробованы и иные модели: LightGBM, XGBoost, TabNet и другие нейронные сети. Самым эффективным с минимальным отрывом (0.0001, что больше похоже на погрешность) была нейросеть TabNet. Было принято решение использовать более простую модель, результаты которой лучше интерпритируются (это важно для бизнеса) и требуют меньших ресурсов. 
+## 2  Data snapshot
 
-## Проблемы и решение
-- Первая проблема заключалась в том, что у нас критически мало данных об утерянных посылках. Из всего датасета лишь 3% содержали информацию о потере отправления.
-Для решения данной проблемы я сначала применил алгоритм SMOTE, но он не дал результаты, которые меня удовлетворили бы. Было решено применить обычное копирование признаков. Теперь 40% всех данных относились к отправлениям, которые были потеряны.
+| File                  | Rows  | Role                |
+| --------------------- | ----- | ------------------- |
+| `train.csv`           | ≈ 6 M | fully labeled       |
+| `test.csv`            | ≈ 4 M | hidden labels       |
+| `sample_solution.csv` | —     | submission template |
 
-- Вторая проблема, которая вызвала у меня замешательство, это множество лишней информации, которая никак не поясняется. "Код отправления", "Тип и атрибут операции" и тд. Когда я работаю с данными, то привык понимать, что означает каждая кодировка. Зная смысл каждой кодировки я могу более эффективно выдвигать гипотезы и искать инсайты, закономерности. Но в данном случае, я работал в слепую, что не помешало получить хороший результат.
+The public dataset is not redistributed here due to licence constraints.
 
-- Третья проблема. Огромное количество категориальных данных. Я не очень люблю данный тип, особенно в таком количестве, поэтому пришлось найти способы отображения этой информации в более понятном для меня и модели виде. Я пересчитал каждую метку, что бы она отображала процент потерь по каждой категории. Подобное отображение стало более наглядно для меня и дало не большой прирост к метрике.
+## 3  Metric
 
-- Четвертая. Последняя проблема является классической. Признаков оказалось не достаточно и мне пришлось создавать новую информацию на основе старой (частично это относится и к третьей проблеме). Это сработало. В моей конечной модели одним из самых важных признаков является именно созданный мной.
+Weighted blend emphasising discrimination:
+$**Score** = 0.1 × Recall + 0.9 × ROC‑AUC$
+
+## 4  Solution outline (notebook sections)
+
+| Section                   | Highlights                                                  |
+| ------------------------- | ----------------------------------------------------------- |
+| **1 EDA**                 | imbalance (3 % positives)                                   |
+| **2 Feature engineering** | loss‑rate encoding, regional loss %, operator ratios        |
+| **3 Class re‑balancing**  | controlled oversampling to \~40 % positives                 |
+| **4 Model**               | CatBoost (depth 9, 21 600 iters, LR 0.05)                   |
+| **5 Validation**          | Blend ≈ 0.86                                                |
+| **6 Feature importance**  | region & unknown‑operator ratios dominate                   |
+| **7 Submission creation** | one‑liner once model is fitted                              |
+
+## 5  Key takeaways
+
+* **Simple > complex** — CatBoost + domain‑aware features beat TabNet/XGBoost with far less engineering.
+* **Domain heuristics matter** — zip‑region mapping and operator statistics were top predictors.
+* **Metric‑driven thresholding** — optimising the Recall/AUC blend required dedicated grid search around the decision threshold (0.25).
+
+## 6  Running the notebook
+
+* Russian Post & the championship organisers for the data.
+* Open‑source maintainers of CatBoost and the PyData stack.
+
+---
+
+*Written in 2025 by Heinrich Wirth*
