@@ -43,7 +43,7 @@ $**Score** = 0.1 × Recall + 0.9 × ROC‑AUC$
 * **Domain heuristics matter** — zip‑region mapping and operator statistics were top predictors.
 * **Metric‑driven thresholding** — optimising the Recall/AUC blend required dedicated grid search around the decision threshold (0.25).
 
-## 6  Running the notebook
+## 6  Credits
 
 * Russian Post & the championship organisers for the data.
 * Open‑source maintainers of CatBoost and the PyData stack.
